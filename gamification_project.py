@@ -20,6 +20,13 @@ lcd_scl_pin = 13 # Subject to change
 row_pins = [4, 14, 15, 17] # Subject to change
 col_pins = [18, 27, 22] # Subject to change
 
+KEYPAD = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9],
+    ["*", 0, "#"]
+]
+
 factory = rpi_gpio.KeypadFactory()
 
 # Try factory.create_4_by_3_keypad
