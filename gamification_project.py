@@ -61,5 +61,5 @@ class PhoneBox():
         for k in keypresses:
             self.time += k
             
-        k = int(k)
+        self.time = int(self.time)
             
