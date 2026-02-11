@@ -1,5 +1,5 @@
 '''
-Modified: 30 January 2026
+Modified: 11 February 2026
 By: Ahmet Kaya
 
 Purpose: Run our Gamification Project
@@ -20,28 +20,32 @@ lcd_scl_pin = 13 # Subject to change
 row_pins = [4, 14, 15, 17] # Subject to change
 col_pins = [18, 27, 22] # Subject to change
 
-KEYPAD = [
-    [1, 2, 3],
-    [4, 5, 6],
-    [7, 8, 9],
-    ["*", 0, "#"]
-]
-
-factory = rpi_gpio.KeypadFactory()
-
-# Try factory.create_4_by_3_keypad
-# and factory.create_4_by_4_keypad for reasonable defaults
-keypad = factory.create_keypad(keypad=KEYPAD, row_pins=ROW_PINS, col_pins=COL_PINS)
-
-# Initialize LCD
-i2c = I2C(0, sda=Pin(lcd_sda_pin), scl=Pin(lcd_scl_pin), freq = 400000)
-I2C_ADDR = i2c.scan()[0]
-lcd = I2cLcd(i2c, I2C_ADDR, 2, 16)
-
-def return_key(key):
-    return key
-
-lcd.putstr("Enter the desired time and hit #.")
+class Keypad():
+    def __init__(self, row_pins, col_pins):
+        keys = [
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9],
+            ["*", 0, "#"]
+        ]
+        factory = rpi_gpio.KeypadFactory()
+        # Try factory.create_4_by_3_keypad
+        # and factory.create_4_by_4_keypad for reasonable defaults
+        self.keypad = factory.create_keypad(keys, row_pins, col_pins)
+        
+    def keypress(self):
+        return self.keypad.registerKeyPressHandler(lambda key: key)
 
 
-keypress = keypad.registerKeyPressHandler(return_key)
+
+class PhoneBox():
+    def __init__(self):
+        self.keypad = Keypad(row_pins,col_pins)
+        # Initialize LCD
+        self.initialize_lcd()
+        
+        # Initializes the LCD display
+    def initialize_lcd(self):
+        i2c = I2C(0, sda=Pin(lcd_sda_pin), scl=Pin(lcd_scl_pin), freq = 400000)
+        I2C_ADDR = i2c.scan()[0]
+        self.lcd = I2cLcd(i2c, I2C_ADDR, 2, 16) # 2 rows on LCD, 16 columns
