@@ -43,9 +43,23 @@ class PhoneBox():
         self.keypad = Keypad(row_pins,col_pins)
         # Initialize LCD
         self.initialize_lcd()
+        self.time: int = 0
         
         # Initializes the LCD display
     def initialize_lcd(self):
         i2c = I2C(0, sda=Pin(lcd_sda_pin), scl=Pin(lcd_scl_pin), freq = 400000)
         I2C_ADDR = i2c.scan()[0]
         self.lcd = I2cLcd(i2c, I2C_ADDR, 2, 16) # 2 rows on LCD, 16 columns
+        
+    def set_timer(self):
+        self.lcd.putstr("Enter the desired time in minutes and hit #.")
+        keypresses = []
+        while keypress != "#":
+            keypress = self.keypad.keypress()
+            keypresses.append(keypress)
+            
+        for k in keypresses:
+            self.time += k
+            
+        k = int(k)
+            
