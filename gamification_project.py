@@ -72,11 +72,11 @@ class PhoneBox():
         self.time = int(self.time)
             
     def display_countdown(self):
-        while self.time != 0:
+        while self.time != 0 and self.keypad.keypress() != "#":
             self.lcd.putstr(self.time_display_format())
             time.sleep(1)
             self.lcd.clear()
-            self.time -= 1
+            
 
     def time_display_format(self):
         min = int(self.time/60)
@@ -87,4 +87,36 @@ class PhoneBox():
     def run_phonebox(self):
         self.set_timer()
         self.lock.write(90)
+        self.main_loop()
+        
+    def main_loop(self):
+        self.display_countdown()
+        if self.time == 0:
+            self.lcd.putstr("Time's up!")
+            self.lock.write(0)
+        else:
+            self.lcd.putstr("Why did you stop the timer")
+            time.sleep(1)
+            self.lcd.clear()
+            pause_options = {"A": "A: Important notification", "B": "B: I give up"}
+            display_string = pause_options["A"]
+            while keypress := self.keypad.keypress() not in pause_options.keys():
+                self.lcd.putstr("Why did you stop the timer")
+                self.lcd.move_to(0,1)
+                self.lcd.putstr(display_string)
+                display_string = pause_options["A"] if display_string != pause_options["A"] else display_string["B"]
+                time.sleep(1)
+                self.lcd.clear()
+            if keypress == "A":
+                self.lcd.putstr("Paused due to important notification")
+            elif keypress == "B":
+                self.lcd.putstr("Paused due to lack of willpower")
+            self.lcd.move_to(0,1)
+            self.lcd.putstr("Press # to resume")
+            while keypress := self.keypad.keypress() != "#":
+                time.sleep(0.1)
+            self.main_loop()
+                
+                
+
         
