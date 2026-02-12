@@ -1,5 +1,5 @@
 '''
-Modified: 11 February 2026
+Modified: 12 February 2026
 By: Ahmet Kaya
 
 Purpose: Run our Gamification Project
@@ -8,17 +8,23 @@ Citations:
 Some functions and syntax were taken from Google
 Some of the code was sourced from the pad4pi GitHub and edited for use in this project
 Some of the code was sourced from my Failure Fest Project and edited for use in this project
+gpiozero documentation
 '''
 
 from machine import Pin, PWM, I2C, ADC
 from pico_i2c_lcd import I2cLcd
+from gpiozero import Button
 from pad4pi import rpi_gpio
+from servo import Servo
+import time
 
 photoresistor_pin = 1 # Subject to change
 lcd_sda_pin = 12 # Subject to change
 lcd_scl_pin = 13 # Subject to change
 row_pins = [4, 14, 15, 17] # Subject to change
 col_pins = [18, 27, 22] # Subject to change
+magnetic_switch_pin = 0 # Subject to change
+servo_pin = 2 # Subject to change
 
 class Keypad():
     def __init__(self, row_pins, col_pins):
@@ -44,6 +50,8 @@ class PhoneBox():
         # Initialize LCD
         self.initialize_lcd()
         self.time: int = 0
+        self.magnet = gpiozero.Button(magnetic_switch_pin, pull_up=True)
+        self.lock = Servo(Pin(servo_pin))
         
         # Initializes the LCD display
     def initialize_lcd(self):
@@ -63,3 +71,20 @@ class PhoneBox():
             
         self.time = int(self.time)
             
+    def display_countdown(self):
+        while self.time != 0:
+            self.lcd.putstr(self.time_display_format())
+            time.sleep(1)
+            self.lcd.clear()
+            self.time -= 1
+
+    def time_display_format(self):
+        min = int(self.time/60)
+        sec = self.time - min
+        return f"{min}:{sec}"
+    
+    
+    def run_phonebox(self):
+        self.set_timer()
+        self.lock.write(90)
+        
