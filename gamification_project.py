@@ -11,7 +11,7 @@ Some of the code was sourced from my Failure Fest Project and edited for use in 
 gpiozero documentation
 '''
 
-from machine import Pin, PWM, I2C, ADC
+from machine import Pin, I2C
 from pico_i2c_lcd import I2cLcd
 from gpiozero import Button
 from pad4pi import rpi_gpio
