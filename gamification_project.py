@@ -14,7 +14,9 @@ https://nerdcave.xyz/raspberrypi/module-and-sensors/tutorial-4-keypad/
 
 from machine import Pin, I2C
 from pico_i2c_lcd import I2cLcd
-from picozero import Button, Servo, DigitalOutputDevice
+from gpiozero import Button
+from pad4pi import rpi_gpio
+from servo import Servo
 import time
 
 lcd_sda_pin = 12 # Subject to change
@@ -26,30 +28,20 @@ servo_pin = 2 # Subject to change
 
 class Keypad():
     def __init__(self, row_pins, col_pins):
-        self.keys = ["1", "2", "3", "A",
-                     "4", "5", "6", "B",
-                     "7", "8", "9", "C",
-                     "*", "0", "#", "D"]
-        # Initialize row pins as DigitalOutputDevice
-        self.rows = [DigitalOutputDevice(pin) for pin in row_pins]
-        # Initialize column pins as Buttons
-        self.cols = [Button(pin, pull_up=False) for pin in col_pins]
+        keys = [
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9],
+            ["*", 0, "#"]
+        ]
+        factory = rpi_gpio.KeypadFactory()
+        # Try factory.create_4_by_3_keypad
+        # and factory.create_4_by_4_keypad for reasonable defaults
+        self.keypad = factory.create_keypad(keys, row_pins, col_pins)
         
-    # Return pressed key on keypad
     def keypress(self):
-       
-        # Scan each row and column to identify pressed key
-        for i, row in enumerate(self.rows):
-            row.on()  # Enable the current row
-            for j, col in enumerate(self.cols):
-                if col.is_pressed:  # Check if the column button is pressed
-                    # Calculate the key index based on row and column
-                    index = i * len(self.cols) + j
-                    row.off() # Disable the current row
-                    print(self.keys[index])
-                    time.sleep(0.5)
-                    return self.keys[index]
-            row.off()
+        return self.keypad.registerKeyPressHandler(lambda key: key)
+
 
 
 class PhoneBox():
@@ -58,8 +50,8 @@ class PhoneBox():
         # Initialize LCD
         self.initialize_lcd()
         self.time: int = 0
-        self.magnet = Button(magnetic_switch_pin, pull_up=True)
-        self.lock = Servo(servo_pin)
+        self.magnet = gpiozero.Button(magnetic_switch_pin, pull_up=True)
+        self.lock = Servo(Pin(servo_pin))
         
         # Initializes the LCD display
     def initialize_lcd(self):
@@ -68,11 +60,8 @@ class PhoneBox():
         self.lcd = I2cLcd(i2c, I2C_ADDR, 2, 16) # 2 rows on LCD, 16 columns
         
     def set_timer(self):
-        self.lcd.putstr("Enter time in")
-        self.lcd.move_to(0,1)
-        self.lcd.putstr("min and hit #")
-        keypresses = ""
-        keypress = self.keypad.keypress()
+        self.lcd.putstr("Enter the desired time in minutes and hit #.")
+        keypresses = []
         while keypress != "#":
             if keypress != None:
                 keypresses += keypress
@@ -136,7 +125,5 @@ class PhoneBox():
             self.main_loop()
                 
                 
-phonebox = PhoneBox()
-print(phonebox.keypad.keypress())
-phonebox.run_phonebox()
+
         
