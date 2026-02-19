@@ -12,19 +12,23 @@ picozero documentation
 https://nerdcave.xyz/raspberrypi/module-and-sensors/tutorial-4-keypad/
 '''
 
+# Import all the necessary libraries
 from machine import Pin, I2C
 from pico_i2c_lcd import I2cLcd
 from picozero import Button, Servo, DigitalOutputDevice
 import time
 
-lcd_sda_pin = 12 # Subject to change
-lcd_scl_pin = 13 # Subject to change
-row_pins = [26, 22, 21, 20] # Subject to change
-col_pins = [19, 18, 17, 16] # Subject to change
+# Pins and lists of pins that were used to initialize the project
+lcd_sda_pin = 12 
+lcd_scl_pin = 13 
+row_pins = [26, 22, 21, 20] 
+col_pins = [19, 18, 17, 16]
 magnetic_switch_pin = 0 # Subject to change
-servo_pin = 2 # Subject to change
+servo_pin = 2
 
+# Keypad class that stores all the properties and methods relevant to the keypad
 class Keypad():
+    # Initialize Keypad object
     def __init__(self, row_pins, col_pins):
         self.keys = ["1", "2", "3", "A",
                      "4", "5", "6", "B",
@@ -47,26 +51,34 @@ class Keypad():
                     index = i * len(self.cols) + j
                     row.off() # Disable the current row
                     print(self.keys[index])
-                    time.sleep(0.5)
+                    time.sleep(0.25)
                     return self.keys[index]
             row.off()
 
+# TO DO: Magnetic reed switch, how to improve message, keep track of pauses
 
+# Main class that contains everything to run the project
 class PhoneBox():
+    # Initialize PhoneBox object
     def __init__(self):
+        # Create keypad
         self.keypad = Keypad(row_pins,col_pins)
         # Initialize LCD
         self.initialize_lcd()
+        # Set time to 0
         self.time: int = 0
+        # Initialize magnetic reed switch
         self.magnet = Button(magnetic_switch_pin, pull_up=True)
+        # Initialize servo to lock prize compartment
         self.lock = Servo(servo_pin)
         
-        # Initializes the LCD display
+    # Initializes the LCD display
     def initialize_lcd(self):
         i2c = I2C(0, sda=Pin(lcd_sda_pin), scl=Pin(lcd_scl_pin), freq = 400000)
         I2C_ADDR = i2c.scan()[0]
         self.lcd = I2cLcd(i2c, I2C_ADDR, 2, 16) # 2 rows on LCD, 16 columns
         
+    # Sets timer based on user input
     def set_timer(self):
         self.lcd.putstr("Enter time in")
         self.lcd.move_to(0,1)
@@ -85,6 +97,7 @@ class PhoneBox():
         self.lcd.clear()
         print(self.time)
             
+    # Displays countdown
     def display_countdown(self):
         while self.time != 0 and self.keypad.keypress() != "#":
             self.lcd.putstr(self.time_display_format())
@@ -92,18 +105,19 @@ class PhoneBox():
             self.time -= 1
             self.lcd.clear()
             
-
+    # Returns time in minute:second format
     def time_display_format(self):
         min = int(self.time/60)
         sec = self.time - min*60
         return f"{min}:{sec}"
     
-    
+    # Main function to run phonebox
     def run_phonebox(self):
         self.set_timer()
         self.lock.mid()
         self.main_loop()
         
+    # Main loop of the phonebox
     def main_loop(self):
         self.lcd.clear()
         self.display_countdown()
@@ -132,7 +146,7 @@ class PhoneBox():
             self.lcd.move_to(0,1)
             self.lcd.putstr("Hit # to resume")
             while keypress := self.keypad.keypress() != "#":
-                time.sleep(0.1)
+                pass
             self.main_loop()
                 
                 
