@@ -55,7 +55,7 @@ class Keypad():
                     return self.keys[index]
             row.off()
 
-# TO DO: Magnetic reed switch, how to improve message, keep track of pauses
+# TO DO: How to improve message, keep track of pauses, bigger LCD
 
 # Main class that contains everything to run the project
 class PhoneBox():
@@ -68,7 +68,7 @@ class PhoneBox():
         # Set time to 0
         self.time: int = 0
         # Initialize magnetic reed switch
-        self.magnet = Button(magnetic_switch_pin, pull_up=True)
+        self.magnet = Pin(magnetic_switch_pin, Pin.IN, Pin.PULL_UP)
         # Initialize servo to lock prize compartment
         self.lock = Servo(servo_pin)
         
@@ -77,6 +77,10 @@ class PhoneBox():
         i2c = I2C(0, sda=Pin(lcd_sda_pin), scl=Pin(lcd_scl_pin), freq = 400000)
         I2C_ADDR = i2c.scan()[0]
         self.lcd = I2cLcd(i2c, I2C_ADDR, 2, 16) # 2 rows on LCD, 16 columns
+        
+    # Returns true when door is closed, false when open
+    def door_closed(self):
+        return self.magnet.value() == 0 # Magnet is near, circuit closed
         
     # Sets timer based on user input
     def set_timer(self):
@@ -99,7 +103,7 @@ class PhoneBox():
             
     # Displays countdown
     def display_countdown(self):
-        while self.time != 0 and self.keypad.keypress() != "#":
+        while self.time != 0 and self.keypad.keypress() != "#" and self.door_closed():
             self.lcd.putstr(self.time_display_format())
             time.sleep(1)
             self.time -= 1
@@ -121,33 +125,38 @@ class PhoneBox():
     def main_loop(self):
         self.lcd.clear()
         self.display_countdown()
-        if self.time == 0:
-            self.lcd.putstr("Time's up!")
-            self.lock.min()
-        else:
-            self.lcd.putstr("Why did you stop")
-            time.sleep(1)
+        if not self.door_closed():
             self.lcd.clear()
-            pause_options = {"A": "A:Vital message", "B": "B:I give up"}
-            display_string = pause_options["A"]
-            while (keypress := self.keypad.keypress()) not in pause_options.keys():
+            self.lcd.putstr("You Failed :(")
+            # SUGGESTIONS FOR NEXT TIME GO HERE
+        else:
+            if self.time == 0:
+                self.lcd.putstr("Time's up!")
+                self.lock.min()
+            else:
                 self.lcd.putstr("Why did you stop")
-                self.lcd.move_to(0,1)
-                self.lcd.putstr(display_string)
-                display_string = pause_options["A"] if display_string != pause_options["A"] else pause_options["B"]
                 time.sleep(1)
                 self.lcd.clear()
-            print("Keypress", keypress)
-            if keypress == "A":
-                print('hi')
-                self.lcd.putstr("Vital message")
-            elif keypress == "B":
-                self.lcd.putstr("You gave up")
-            self.lcd.move_to(0,1)
-            self.lcd.putstr("Hit # to resume")
-            while keypress := self.keypad.keypress() != "#":
-                pass
-            self.main_loop()
+                pause_options = {"A": "A:Vital message", "B": "B:I give up"}
+                display_string = pause_options["A"]
+                while (keypress := self.keypad.keypress()) not in pause_options.keys():
+                    self.lcd.putstr("Why did you stop")
+                    self.lcd.move_to(0,1)
+                    self.lcd.putstr(display_string)
+                    display_string = pause_options["A"] if display_string != pause_options["A"] else pause_options["B"]
+                    time.sleep(1)
+                    self.lcd.clear()
+                print("Keypress", keypress)
+                if keypress == "A":
+                    print('hi')
+                    self.lcd.putstr("Vital message")
+                elif keypress == "B":
+                    self.lcd.putstr("You gave up")
+                self.lcd.move_to(0,1)
+                self.lcd.putstr("Hit # to resume")
+                while keypress := self.keypad.keypress() != "#":
+                    pass
+                self.main_loop()
                 
                 
 phonebox = PhoneBox()
