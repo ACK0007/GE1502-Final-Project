@@ -1,5 +1,5 @@
 '''
-Modified: 17 February 2026
+Modified: 20 February 2026
 By: Ahmet Kaya
 
 Purpose: Run our Gamification Project
@@ -23,7 +23,7 @@ lcd_sda_pin = 12
 lcd_scl_pin = 13 
 row_pins = [26, 22, 21, 20] 
 col_pins = [19, 18, 17, 16]
-magnetic_switch_pin = 0 # Subject to change
+magnetic_switch_pin = 0
 servo_pin = 2
 
 # Keypad class that stores all the properties and methods relevant to the keypad
@@ -50,12 +50,9 @@ class Keypad():
                     # Calculate the key index based on row and column
                     index = i * len(self.cols) + j
                     row.off() # Disable the current row
-                    print(self.keys[index])
                     time.sleep(0.25)
                     return self.keys[index]
             row.off()
-
-# TO DO: How to improve message, keep track of pauses, bigger LCD
 
 # Main class that contains everything to run the project
 class PhoneBox():
@@ -71,12 +68,14 @@ class PhoneBox():
         self.magnet = Pin(magnetic_switch_pin, Pin.IN, Pin.PULL_UP)
         # Initialize servo to lock prize compartment
         self.lock = Servo(servo_pin)
+        # Dictionary to keep track of pauses
+        self.pauses = {"A":0, "B":0}
         
     # Initializes the LCD display
     def initialize_lcd(self):
         i2c = I2C(0, sda=Pin(lcd_sda_pin), scl=Pin(lcd_scl_pin), freq = 400000)
         I2C_ADDR = i2c.scan()[0]
-        self.lcd = I2cLcd(i2c, I2C_ADDR, 2, 16) # 2 rows on LCD, 16 columns
+        self.lcd = I2cLcd(i2c, I2C_ADDR, 4, 20) # 4 rows on LCD, 20 columns
         
     # Returns true when door is closed, false when open
     def door_closed(self):
@@ -92,14 +91,12 @@ class PhoneBox():
         while keypress != "#":
             if keypress != None:
                 keypresses += keypress
-                print(keypress)
                 self.lcd.clear()
                 self.lcd.putstr(keypresses)
             keypress = self.keypad.keypress()
         
         self.time = int(keypresses)*60
         self.lcd.clear()
-        print(self.time)
             
     # Displays countdown
     def display_countdown(self):
@@ -125,41 +122,55 @@ class PhoneBox():
     def main_loop(self):
         self.lcd.clear()
         self.display_countdown()
+        # Display message if user opens door before time runs out
         if not self.door_closed():
             self.lcd.clear()
             self.lcd.putstr("You Failed :(")
-            # SUGGESTIONS FOR NEXT TIME GO HERE
+            self.lcd.move_to(0,1)
+            self.lcd.putstr("Try fidgeting or")
+            self.lcd.move_to(0,2)
+            self.lcd.putstr("spending time with")
+            self.lcd.move_to(0,3)
+            self.lcd.putstr("friends instead")
         else:
+            # Display message when timer is up
             if self.time == 0:
                 self.lcd.putstr("Time's up!")
+                self.lcd.move_to(0,1)
+                self.lcd.putstr(f"You had {self.pauses["A"]} vital")
+                self.lcd.move_to(0,2)
+                self.lcd.putstr("notifications")
+                self.lcd.move_to(0,3)
+                self.lcd.putstr(f"You gave up {self.pauses["A"]} times")
                 self.lock.min()
+            # Display pause options
             else:
                 self.lcd.putstr("Why did you stop")
                 time.sleep(1)
-                self.lcd.clear()
-                pause_options = {"A": "A:Vital message", "B": "B:I give up"}
+                pause_options = {"A": "A:Vital notification", "B": "B:I give up"}
+                self.lcd.move_to(0,1)
+                self.lcd.putstr(pause_options["A"])
+                self.lcd.move_to(0,2)
+                self.lcd.putstr(pause_options["B"])
                 display_string = pause_options["A"]
                 while (keypress := self.keypad.keypress()) not in pause_options.keys():
-                    self.lcd.putstr("Why did you stop")
-                    self.lcd.move_to(0,1)
-                    self.lcd.putstr(display_string)
-                    display_string = pause_options["A"] if display_string != pause_options["A"] else pause_options["B"]
-                    time.sleep(1)
-                    self.lcd.clear()
-                print("Keypress", keypress)
+                    pass
+                self.lcd.clear()
                 if keypress == "A":
-                    print('hi')
-                    self.lcd.putstr("Vital message")
+                    self.lcd.putstr("Vital notification")
+                    self.pauses["A"] += 1
                 elif keypress == "B":
                     self.lcd.putstr("You gave up")
+                    self.pauses["B"] += 1
                 self.lcd.move_to(0,1)
                 self.lcd.putstr("Hit # to resume")
                 while keypress := self.keypad.keypress() != "#":
                     pass
                 self.main_loop()
                 
-                
+              
+# Create PhoneBox object
 phonebox = PhoneBox()
-print(phonebox.keypad.keypress())
+# Run phonebox
 phonebox.run_phonebox()
         
